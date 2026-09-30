@@ -1,0 +1,11 @@
+{
+  "name": "MeuRepertório — Sua música. Seu jeito de tocar.",
+  "short_name": "MeuRepertório",
+  "description": "Cifras e setlists sempre prontos para o palco.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050a12",
+  "theme_color": "#050b15",
+  "orientation": "any",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
