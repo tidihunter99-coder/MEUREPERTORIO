@@ -1,8 +1,12 @@
 import type { ScoreSection } from "@/lib/music";
+import { createSongModel } from "@/lib/music-analyzer";
+import type { SongModel } from "@/lib/song-model";
 
 export type Song = {
-  id: string; title: string; artist: string; key: string; bpm: number; time: string;
-  favorite: boolean; sections: ScoreSection[]; sourceText?: string; preferredMode?: "visual" | "marcus"; updatedAt: string;
+  id: string; title: string; artist: string; key: string; bpm?: number; time?: string;
+  favorite: boolean; sections: ScoreSection[]; sourceText?: string; originalContent?: string; musicModel?: SongModel; preferredMode?: "normal" | "visual" | "marcus" | "tempo"; updatedAt: string;
+  tags?: string[]; lastOpenedAt?: string; photoData?: string; sourceKind?: "text" | "photo" | "manual";
+  createdAt?: string; playCount?: number; preferredKey?: string;
 };
 export type Band = { id: string; name: string; image?: string; description: string; instrument: string; notes: string };
 export type SetlistEntry = { id: string; songId: string; blockId: string; key?: string };
@@ -37,11 +41,16 @@ export const coracaoPartido: Song = {
   ] }],
 };
 
-export const initialWorkspace: Workspace = { songs: [demoSong, coracaoPartido], bands: [], setlists: [], updatedAt: now };
+export const initialWorkspace: Workspace = withBuiltInSongs({ songs: [demoSong, coracaoPartido], bands: [], setlists: [], updatedAt: now });
 
 export function withBuiltInSongs(workspace: Workspace): Workspace {
-  const exists = workspace.songs.some(song => song.id === coracaoPartido.id || song.title.toLocaleLowerCase("pt-BR") === "coração partido");
-  return exists ? workspace : { ...workspace, songs: [...workspace.songs, coracaoPartido] };
+  // Upgrade old library entries in place without creating a second song.
+  return { ...workspace, songs: workspace.songs.map(song => {
+    const originalContent = song.originalContent ?? song.sourceText ?? song.sections.map(section => `[${section.name}]\n${section.lines.map(line => line.text).join("\n")}`).join("\n\n");
+    return song.originalContent !== undefined && song.musicModel?.version === 1 ? song : {
+      ...song, originalContent, musicModel: createSongModel(originalContent, song.sections),
+    };
+  }) };
 }
 
 export function newId(): string {

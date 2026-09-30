@@ -50,7 +50,7 @@ create index if not exists songs_updated_at_idx on public.songs (updated_at desc
 create index if not exists setlists_updated_at_idx on public.setlists (updated_at desc);
 create index if not exists setlist_songs_position_idx on public.setlist_songs (setlist_id, position);
 
--- One private, offline-first workspace per authenticated Site visitor.
+-- One private, offline-first workspace per Supabase Auth user.
 create table if not exists public.workspaces (
   user_id text primary key,
   document jsonb not null default '{}'::jsonb,

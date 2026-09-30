@@ -33,14 +33,31 @@ export function isChordToken(token: string): boolean {
   return CHORD.test(token);
 }
 
+export type NormalizedChord = { spelling: string; root: number; quality: string; bass: number | null; identity: string };
+
+export function normalizeChord(token: string): NormalizedChord | null {
+  const match = CHORD.exec(token);
+  if (!match) return null;
+  const root = noteIndex(match[1]);
+  const bass = match[4] ? noteIndex(match[4]) : null;
+  if (root < 0 || (bass !== null && bass < 0)) return null;
+  let quality = `${match[2] || ""}${match[3] || ""}`.replace(/−/g, "-").toLowerCase();
+  // Common Brazilian and international spellings are comparable without
+  // changing the text that the musician originally entered.
+  quality = quality.replace(/^min/, "m").replace(/^maj/, "maj").replace(/^m7\+$/, "mmaj7");
+  if (/^(7m|7\+|maj7)$/.test(quality)) quality = "maj7";
+  if (quality === "m7m" || quality === "m7+") quality = "mmaj7";
+  return { spelling: token, root, quality, bass, identity: `${root}:${quality}:${bass ?? ""}` };
+}
+
 export function isChordLine(line: string): boolean {
-  const stripped = line.replace(/\|\|:|:\|\||[|_~]/g, " ").trim();
+  const stripped = line.replace(/\|\|:|:\|\||[|_~]/g, " ").replace(/\s+[–—-]\s+/g, " ").trim();
   if (!stripped) return false;
   const tokens = stripped.split(/\s+/).filter(Boolean);
   // A standalone A–G token is ambiguous and is kept as lyric unless it has
   // chord spacing/companions or explicit harmonic syntax.
   if (tokens.every(token => /^[A-G]$/.test(token)) && !/(?:\s{2,}|\||:)/.test(line)) return false;
-  return tokens.every((token) => isChordToken(token.replace(/[,:;]$/, "")));
+  return tokens.every((token) => isChordToken(token.replace(/[%,:;]$/, "")));
 }
 
 export function transposeChordLine(line: string, semitones: number, accidental: "sharp" | "flat" = "sharp"): string {
@@ -51,40 +68,3 @@ export function transposeChordLine(line: string, semitones: number, accidental: 
 
 export type ScoreLine = { text: string; kind: "chords" | "lyrics" | "note"; fast?: boolean };
 export type ScoreSection = { name: string; tone: "intro" | "verse" | "chorus" | "bridge" | "final"; lines: ScoreLine[] };
-export type ParsedSong = { title: string; artist: string; key: string; sections: ScoreSection[] };
-
-function sectionTone(name: string): ScoreSection["tone"] {
-  const value = name.toLocaleLowerCase("pt-BR");
-  if (/intro|introdu/.test(value)) return "intro";
-  if (/refr|chorus/.test(value)) return "chorus";
-  if (/ponte|bridge|pré|pre-/.test(value)) return "bridge";
-  if (/final|outro|fim|solo/.test(value)) return "final";
-  return "verse";
-}
-
-export function parseSong(raw: string): ParsedSong {
-  const lines = raw.replace(/\r\n?/g, "\n").split("\n");
-  let title = "Nova música";
-  let artist = "Artista não informado";
-  let key = "C";
-  let bodyStarted = false;
-  const sections: ScoreSection[] = [];
-  let current: ScoreSection = { name: "Cifra", tone: "verse", lines: [] };
-  const pushCurrent = () => { if (current.lines.length) sections.push(current); };
-  for (const original of lines) {
-    const trimmed = original.trim();
-    if (!bodyStarted && /^(?:t[ií]tulo|m[uú]sica)\s*:/i.test(trimmed)) { title = trimmed.replace(/^[^:]+:\s*/, "") || title; continue; }
-    if (!bodyStarted && /^(?:artista|banda|autor)\s*:/i.test(trimmed)) { artist = trimmed.replace(/^[^:]+:\s*/, "") || artist; continue; }
-    if (!bodyStarted && /^tom\s*:/i.test(trimmed)) { const candidate = trimmed.replace(/^[^:]+:\s*/, "").split(/\s/)[0]; if (noteIndex(candidate) >= 0) key = candidate; continue; }
-    const heading = /^\[([^\]]+)\]\s*$/.exec(trimmed) || /^(intro(?:dução)?|verso(?:\s+\d+)?|pré-refrão|refrão|ponte|solo|final|outro)\s*:?$/i.exec(trimmed);
-    if (heading) { pushCurrent(); current = { name: heading[1], tone: sectionTone(heading[1]), lines: [] }; bodyStarted = true; continue; }
-    if (!trimmed && !bodyStarted) continue;
-    if (!bodyStarted && !isChordLine(original) && title === "Nova música") { title = trimmed; continue; }
-    bodyStarted = true;
-    const fast = /__|~~|⚡|passagem r[aá]pida/i.test(original);
-    current.lines.push({ text: original, kind: !trimmed ? "note" : isChordLine(original) ? "chords" : "lyrics", fast });
-  }
-  pushCurrent();
-  if (!sections.length) sections.push({ name: "Cifra", tone: "verse", lines: [] });
-  return { title, artist, key, sections };
-}
