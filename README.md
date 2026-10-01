@@ -29,7 +29,7 @@ Execute o SQL de [supabase/schema.sql](supabase/schema.sql) no SQL Editor do Sup
 3. No Supabase Auth, configure a **Site URL** com o domínio de produção e adicione `https://SEU-DOMINIO/auth/callback` às URLs de redirecionamento permitidas. Adicione também URLs dos domínios de preview se o login precisar funcionar neles.
 4. Faça o deploy. Confira o login por link enviado por e-mail, a sincronização em outro dispositivo e a leitura offline antes de divulgar o endereço.
 
-Não é necessário `vercel.json`: o projeto usa os scripts nativos do Next.js. `npm run build` gera o mesmo tipo de build usado na implantação. `npm start` executa esse build localmente.
+`vercel.json` fixa o preset Next.js para deploys pela CLI. `.vercelignore` evita enviar credenciais locais, caches e artefatos gerados. `npm run build` gera o mesmo tipo de build usado na implantação. `npm start` executa esse build localmente.
 
 O aplicativo salva músicas no dispositivo mesmo sem login ou rede. A sincronização associa a biblioteca ao ID da conta Supabase Auth; bibliotecas antigas associadas ao ID de usuário do Sites/ChatGPT não são migradas automaticamente. Os dados locais são preservados no navegador existente e podem ser sincronizados após a entrada na conta.
 

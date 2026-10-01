@@ -1,0 +1,13 @@
+/.env*
+/.npm-cache/
+/.sites-runtime/
+/.vinext/
+/.wrangler/
+/dist/
+/node_modules/
+/.next/
+/.git/
+/MEUREPERTORIO-codigo.zip
+/*.tsbuildinfo
+/outputs/
+/work/
